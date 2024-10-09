@@ -66,19 +66,19 @@ namespace ns_util
             return AddSuffix(file_name, ".compile_error");
         }
 
-        // 重定向：程序运行时需要的临时输入文件（本来由键盘输入）
+        // 重定向：作为可执行程序的标准输入（本来由键盘输入）
         static std::string Stdin(const std::string &file_name)
         {
             return AddSuffix(file_name, ".stdin");
         }
 
-        // 重定向：程序运行时需要的临时输出数据（本来输出到屏幕）
+        // 重定向：将可执行程序的标准输出重定向到文件（本来输出到屏幕）
         static std::string Stdout(const std::string &file_name)
         {
             return AddSuffix(file_name, ".stdout");
         }
 
-        // 重定向：程序运行时输出的错误（本来输出到标准错误）
+        // 重定向：用于接收可执行程序的标准错误信息（本来输出到标准错误）
         static std::string Stderr(const std::string &file_name)
         {
             return AddSuffix(file_name, ".stderr");
@@ -98,7 +98,6 @@ namespace ns_util
                 //获取属性成功，文件已经存在
                 return true;
             }
-
             return false;
         }
     };

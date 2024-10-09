@@ -17,8 +17,10 @@ namespace ns_complier
 
     class Complier
     {
+    public:
         Complier() {}
         ~Complier() {}
+    public:
         // 编译源文件
         // 参数：不带路径前缀和类型后缀的文件名
         // 返回值：编译成功与否
@@ -36,7 +38,7 @@ namespace ns_complier
                 // 打开/新建文件，用于保存输出到标准错误的内容，返回值是文件描述符
                 // 构造完整的带路径和类型后缀的文件名
                 int cperr_fd = open(PathUtil::CompilerError(file_name).c_str(), O_CREAT | O_WRONLY, 0644); // <fcntl.h>
-                if (cperr_fd < 0)                                                                          // 打开或创建文件失败
+                if (cperr_fd < 0) // 打开或创建文件失败
                 {
                     LOG(WARNING) << "打开或创建 .compile_error 文件失败\n";
                     exit(1);
