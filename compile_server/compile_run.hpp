@@ -73,6 +73,9 @@ namespace ns_compile_run
             case SIGXCPU:
                 desc = "CPU超时";
                 break;
+            case SIGSEGV:
+                desc = "段错误";
+                break;
             case SIGFPE:
                 desc = "算术错误（除零错误/浮点错误/溢出错误）";
                 break;
@@ -169,7 +172,7 @@ namespace ns_compile_run
             Json::StyledWriter writer;
             *out_json = writer.write(out_value);
             // 清理临时文件
-            RemoveTempFile(file_name);
+            // RemoveTempFile(file_name);
         }
     };
 }
