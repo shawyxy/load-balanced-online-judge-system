@@ -8,7 +8,7 @@
 #include "compiler.hpp"
 #include "runner.hpp"
 
-namespace ns_runner
+namespace ns_compile_run
 {
     // 引入路径拼接和日志功能
     using namespace ns_util;
