@@ -8,7 +8,6 @@
 #include <fstream>
 #include <atomic>
 
-
 namespace ns_util
 {
     // 时间工具类
@@ -95,10 +94,64 @@ namespace ns_util
             struct stat st;
             if (stat(path_name.c_str(), &st) == 0)
             {
-                //获取属性成功，文件已经存在
+                // 获取属性成功，文件已经存在
                 return true;
             }
             return false;
+        }
+
+        // 构建唯一文件名（不包含路径和后缀，只由编号和时间戳组成）
+        static std::string UniqFileName()
+        {
+            static std::atomic_uint id(0);
+            id++; // 原子计数器
+            // 毫秒级时间戳+原子性递增唯一值: 来保证唯一性
+            std::string ms = TimeUtil::GetTimeMs();   // 毫秒级时间戳
+            std::string uniq_id = std::to_string(id); // 唯一id
+            return ms + "_" + uniq_id;
+        }
+
+        // 将字符串格式的代码写入文件
+        // 参数：
+        //     target：被写入的文件名
+        //     content：字符串格式的代码
+        // 返回值：是否写入成功
+        static bool WriteFile(const std::string &target, const std::string &content)
+        {
+            std::ofstream out(target);
+            if (!out.is_open()) // 打开文件失败
+            {
+                return false;
+            }
+            out.write(content.c_str(), content.size()); // 写入文件
+            out.close();
+            return true;
+        }
+
+        // 把文件中的内容读取到缓冲区
+        // 参数：
+        //     target：被读取的文件名
+        //     content：输出型参数，用于保存读取的内容
+        //     keep：是否保留行尾的换行符'\n'
+        // 返回值：是否读取成功
+        static bool ReadFile(const std::string &target, std::string *content, bool keep = false)
+        {
+            (*content).clear(); // 清空缓冲区
+
+            std::ifstream in(target);
+            if (!in.is_open()) // 打开文件失败
+            {
+                return false;
+            }
+            std::string line;
+            // getline不会读取换行符'\n'
+            while (std::getline(in, line))
+            {
+                (*content) += line;
+                (*content) += (keep ? "\n" : ""); // 手动添加换行符'\n'
+            }
+            in.close();
+            return true;
         }
     };
 

@@ -51,7 +51,7 @@ namespace ns_runner
         //     小于 0：表示内部错误，比如无法创建子进程或打开文件失败。
         static int Run(const std::string &file_name, int cpu_limit, int mem_limit)
         {
-            
+
             std::string _execute = PathUtil::Exe(file_name);
             std::string _stdin = PathUtil::Stdin(file_name);
             std::string _stdout = PathUtil::Stdout(file_name);

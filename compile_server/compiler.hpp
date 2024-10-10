@@ -9,17 +9,17 @@
 #include "../comm/util.hpp"
 #include "../comm/log.hpp"
 
-namespace ns_complier
+namespace ns_compiler
 {
     // 引入路径拼接和日志功能
     using namespace ns_util;
     using namespace ns_log;
 
-    class Complier
+    class Compiler
     {
     public:
-        Complier() {}
-        ~Complier() {}
+        Compiler() {}
+        ~Compiler() {}
     public:
         // 编译源文件
         // 参数：不带路径前缀和类型后缀的文件名
@@ -52,6 +52,7 @@ namespace ns_complier
                 execlp("g++", "g++", "-o", PathUtil::Exe(file_name).c_str() /*.exe*/,
                        PathUtil::Src(file_name).c_str() /*.cpp*/, "-D" /*预处理宏*/,
                        "COMPILER_ONLINE", "-std=c++11", nullptr /*选项终止处*/);
+                
                 // 如果 execlp 执行成功，是不会走到这里的，而是执行完g++后终止
                 LOG(ERROR) << "启动编译器g++失败，可能是参数错误\n";
                 exit(2);
