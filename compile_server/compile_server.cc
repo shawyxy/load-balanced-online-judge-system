@@ -1,35 +1,20 @@
 #include "compile_run.hpp"
+#include "../comm/httplib.h"
+
+// 引入编译并运行模块
 using namespace ns_compile_run;
+// 引入网络服务模块
+using namespace httplib;
 
 int main()
 {
-    std::string in_json;
-    Json::Value in_value;
-    in_value["code"] = R"(
-    #include<bits/stdc++.h>
-    using namespace std;
-    int main()
-    {
-float big = std::numeric_limits<float>::max();
-    float result = big * big;  //
-        return 0;
-    })";
-    in_value["input"] = "";
-    in_value["cpu_limit"] = 1;
-    in_value["mem_limit"] = 1024*20; // 20MB
-
-    // FastWriter构建原始字符串（无JSON格式），用于网络传输
-    Json::FastWriter writer;
-    in_json = writer.write(in_value);
-    std::cout << "原始字符串：\n"
-              << in_json << std::endl;
-
-    // StyledWriter构建JSON格式字符串
-    std::string out_json;
-    // 编译并运行
-    CompileAndRun::Start(in_json, &out_json);
-    std::cout << "JSON字符串：\n"
-              << out_json << std::endl;
-
+    // 1. 创建server对象
+    Server svr;
+    // 2. 注册响应内容
+    //    当用户请求"/hello"时，执行对应的响应（lambda函数）
+    svr.Get("/hello", [](const Request &req, Response &resp)
+            { resp.set_content("hello httplib, 你好", "text/plain;charset=utf-8;"); });
+    // 3. 启动http服务
+    svr.listen("0.0.0.0", 8080);
     return 0;
 }
