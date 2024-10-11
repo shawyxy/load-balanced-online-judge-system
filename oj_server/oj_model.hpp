@@ -23,12 +23,12 @@ namespace ns_model
     // 定义题目的相关属性
     struct Problem
     {
-        std::string id; // 题目编号
-        std::string title;  // 题目标题
-        std::string star;   // 难度：简单/中等/困难
-        
-        int cpu_limit;      // 时间限制(S)
-        int mem_limit;      // 空间限制(KB)
+        std::string id;    // 题目编号
+        std::string title; // 题目标题
+        std::string star;  // 难度：简单/中等/困难
+
+        int cpu_limit; // 时间限制(S)
+        int mem_limit; // 空间限制(KB)
 
         std::string desc;   // 题目描述
         std::string header; // 题目接口
@@ -50,7 +50,9 @@ namespace ns_model
             // 加载所有的题目信息到内存中的哈希表中
             assert(LoadProblemList(problems_list));
         }
+        ~Model() {}
 
+    public:
         bool LoadProblemList(const string &problem_list)
         {
             // 加载配置文件: problems/problems.list + 题目编号文件
@@ -126,9 +128,6 @@ namespace ns_model
             }
             (*p) = it->second;
             return true;
-        }
-        ~Model()
-        {
         }
     };
 } // namespace ns_model
