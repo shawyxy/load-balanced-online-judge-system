@@ -10,13 +10,13 @@ int main()
     Server svr;
 
     // 获取题目列表
-    svr.Get("/all_questions", [](const Request &req, Response &resp) {
+    svr.Get("/problems_list", [](const Request &req, Response &resp) {
         resp.set_content("题目列表", "text/plain; charset=utf-8");
     });
     
     // 根据用户提交的题目编号返回题目内容给用户
-    // /question/${题目编号}$
-    svr.Get(R"(/question/(\d+))", [](const Request &req, Response &resp) {
+    // /problems/${题目编号}$
+    svr.Get(R"(//(\d+))", [](const Request &req, Response &resp) {
         std::string number = req.matches[1]; // 正则表达式匹配题目编号
         resp.set_content("题目编号：" + number, "text/plain; charset=utf-8");
     });
@@ -28,6 +28,6 @@ int main()
     });
 
     svr.listen("0.0.0.0", 8080);
-    
+
     return 0;
 }
