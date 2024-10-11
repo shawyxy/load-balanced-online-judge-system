@@ -16,7 +16,7 @@ int main()
     
     // 根据用户提交的题目编号返回题目内容给用户
     // /problems/${题目编号}$
-    svr.Get(R"(//(\d+))", [](const Request &req, Response &resp) {
+    svr.Get(R"(/(\d+))", [](const Request &req, Response &resp) {
         std::string number = req.matches[1]; // 正则表达式匹配题目编号
         resp.set_content("题目编号：" + number, "text/plain; charset=utf-8");
     });
