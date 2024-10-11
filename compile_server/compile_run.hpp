@@ -172,7 +172,7 @@ namespace ns_compile_run
             Json::StyledWriter writer;
             *out_json = writer.write(out_value);
             // 清理临时文件
-            // RemoveTempFile(file_name);
+            RemoveTempFile(file_name);
         }
     };
 }
