@@ -32,17 +32,17 @@ namespace ns_view
             // 2. 形成模板路径
             // 创建一个字典对象 root，用于存储题目信息
             ctemplate::TemplateDictionary root("all_problems");
-            // 每个题目信息会被加入到 question_list，这部分在模板文件中会重复渲染
+            // 每个题目信息会被加入到 problems_list，这部分在模板文件中会重复渲染
             for (const auto &p : problems)
             {
-                ctemplate::TemplateDictionary *sub = root.AddSectionDictionary("puestion_list");
+                ctemplate::TemplateDictionary *sub = root.AddSectionDictionary("problems_list");
                 sub->SetValue("id", p.id);       // 题目的编号
                 sub->SetValue("title", p.title); // 标题
                 sub->SetValue("star", p.star);   // 难度
             }
 
             // 3. 加载被渲染的html模板
-            // 从文件中加载模板，这里使用的是 all_questions.html 模板
+            // 从文件中加载模板，这里使用的是 all_problems.html 模板
             ctemplate::Template *tpl = ctemplate::Template::GetTemplate(src_html, ctemplate::DO_NOT_STRIP);
 
             // 4. 渲染模板
@@ -54,15 +54,14 @@ namespace ns_view
         void OneExpandHtml(const struct Problem &p, std::string *html)
         {
             // 1. 形成模板路径
-            std::string src_html = template_path + "one_puestion.html";
-
+            std::string src_html = template_path + "one_problem.html";
             // 2. 形成模板路径
-            ctemplate::TemplateDictionary root("one_puestion");
+            ctemplate::TemplateDictionary root("one_problem");
             root.SetValue("id", p.id);
             root.SetValue("title", p.title);
             root.SetValue("star", p.star);
             root.SetValue("desc", p.desc);
-            root.SetValue("pre_code", p.header);
+            root.SetValue("pre_code", p.header); // 预设接口代码
 
             // 3. 加载被渲染的html模板
             ctemplate::Template *tpl = ctemplate::Template::GetTemplate(src_html, ctemplate::DO_NOT_STRIP);

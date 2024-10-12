@@ -26,7 +26,7 @@ namespace ns_control
     public:
         // 获取所有题目的信息，并生成一个显示所有题目的网页
         // /template_html/all_problems.html
-        bool AllProblems(std::string *html)
+        bool AllProblems(std::string *html) // 输出型参数
         {
             bool ret = true;
             std::vector<struct Problem> all;

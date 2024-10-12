@@ -8,6 +8,8 @@
 #include <fstream>
 #include <atomic>
 
+#include <boost/algorithm/string.hpp>
+
 namespace ns_util
 {
     // 时间工具类
