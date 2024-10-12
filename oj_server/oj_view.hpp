@@ -31,14 +31,14 @@ namespace ns_view
             std::string src_html = template_path + "all_problems.html";
             // 2. 形成模板路径
             // 创建一个字典对象 root，用于存储题目信息
-            ctemplate::TemplateDictionary root("all_problems"); 
+            ctemplate::TemplateDictionary root("all_problems");
             // 每个题目信息会被加入到 question_list，这部分在模板文件中会重复渲染
             for (const auto &p : problems)
             {
                 ctemplate::TemplateDictionary *sub = root.AddSectionDictionary("puestion_list");
-                sub->SetValue("id", p.id);
-                sub->SetValue("title", p.title);
-                sub->SetValue("star", p.star);
+                sub->SetValue("id", p.id);       // 题目的编号
+                sub->SetValue("title", p.title); // 标题
+                sub->SetValue("star", p.star);   // 难度
             }
 
             // 3. 加载被渲染的html模板
@@ -71,4 +71,4 @@ namespace ns_view
             tpl->Expand(html, &root);
         }
     };
-}
+} // namespace ns_view
