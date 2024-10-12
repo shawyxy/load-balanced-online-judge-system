@@ -22,6 +22,6 @@ namespace ns_control
         Control() {}
         ~Control() {}
     public:
-
+        
     };
 } // namespace ns_control
