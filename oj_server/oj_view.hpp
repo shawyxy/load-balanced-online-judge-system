@@ -61,7 +61,9 @@ namespace ns_view
             root.SetValue("title", p.title);
             root.SetValue("star", p.star);
             root.SetValue("desc", p.desc);
-            root.SetValue("pre_code", p.header); // 预设接口代码
+            // 解决HTML解释器渲染尖括号不显示的问题
+            std::string pre_code = StringUtil::EscapeHtml(p.header);
+            root.SetValue("pre_code", pre_code); // 预设接口代码
 
             // 3. 加载被渲染的html模板
             ctemplate::Template *tpl = ctemplate::Template::GetTemplate(src_html, ctemplate::DO_NOT_STRIP);

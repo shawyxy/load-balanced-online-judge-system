@@ -169,5 +169,26 @@ namespace ns_util
         {
             boost::split((*target), str, boost::is_any_of(sep), boost::algorithm::token_compress_on);
         }
+
+        // 转义特殊字符"<"和">"，解决HTML解释器渲染尖括号不显示的问题
+        static std::string EscapeHtml(const std::string& input) 
+        {
+            std::string output;
+            for (auto &c : input) 
+            {
+                switch (c) 
+                {
+                case '<':
+                    output += "&lt;";
+                    break;
+                case '>':
+                    output += "&gt;";
+                    break;
+                default:
+                    output += c;
+                }
+            }
+            return output;
+        }
     };
 }
