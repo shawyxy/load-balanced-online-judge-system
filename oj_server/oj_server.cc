@@ -28,13 +28,15 @@ int main()
         ctrl.Problem(id, &html);
         resp.set_content(html, "text/html; charset=utf-8");
     });
-
-    // 用户提交判题请求
-    svr.Get(R"(/judge/(\d+))", [](const Request &req, Response &resp) {
-        std::string id = req.matches[1];
-        resp.set_content("判题编号：" + id, "text/plain; charset=utf-8");
-    });
     
+    // 用户提交判题请求
+    svr.Post(R"(/judge/(\d+))", [&ctrl](const Request &req, Response &resp) {
+        std::string id = req.matches[1];
+        std::string result_json;
+        ctrl.Judge(id, req.body, &result_json);
+        resp.set_content(result_json, "application/json;charset=utf-8");
+    });
+
     // 将 wwwroot 目录设为服务器的基础目录
     svr.set_base_dir("./wwwroot");
     
