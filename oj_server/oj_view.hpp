@@ -29,7 +29,7 @@ namespace ns_view
         {
             // 1. 形成模板路径
             std::string src_html = template_path + "all_problems.html";
-            // 2. 形成模板路径
+            // 2. 形成数据字典
             // 创建一个字典对象 root，用于存储题目信息
             ctemplate::TemplateDictionary root("all_problems");
             // 每个题目信息会被加入到 problems_list，这部分在模板文件中会重复渲染
@@ -55,7 +55,7 @@ namespace ns_view
         {
             // 1. 形成模板路径
             std::string src_html = template_path + "one_problem.html";
-            // 2. 形成模板路径
+            // 2. 形成数据字典
             ctemplate::TemplateDictionary root("one_problem");
             root.SetValue("id", p.id);
             root.SetValue("title", p.title);
