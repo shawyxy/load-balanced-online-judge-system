@@ -150,7 +150,7 @@ namespace ns_control
             if (online_num == 0)
             {
                 _mtx.unlock();
-                LOG(FATAL) << "：后端编译主机全部离线！\n";
+                LOG(FATAL) << "：后端所有编译主机全部离线！\n";
                 return false;
             }
             // 遍历主机列表，选择负载最小的主机
@@ -197,7 +197,7 @@ namespace ns_control
             _offline.erase(_offline.begin(), _offline.end());
             _mtx.unlock();
 
-            LOG(INFO) << "所有主机上线\n";
+            LOG(INFO) << "所有主机已上线\n";
         }
 
         // for test
@@ -337,6 +337,12 @@ namespace ns_control
                     _load_balance.ShowMachines();             // for test
                 }
             }
+        }
+
+        // 当所有主机离线则重新上线
+        void RecoveryMachine()
+        {
+            _load_balance.OnlineMachine();
         }
     };
 } // namespace ns_control

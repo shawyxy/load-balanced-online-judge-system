@@ -1,4 +1,5 @@
 #include <iostream>
+#include <signal.h>
 
 #include "../comm/httplib.h"
 #include "oj_control.hpp"
@@ -6,12 +7,22 @@
 using namespace httplib;
 using namespace ns_control;
 
+static Control *ctrl_ptr = nullptr;
+
+void Recovery(int signo)
+{
+    ctrl_ptr->RecoveryMachine();
+}
+
 int main()
 {
+    signal(SIGQUIT, Recovery); // ctrl+C
+
     // 用户请求的路由功能
     Server svr;
     // 前端和后端交互功能
     Control ctrl;
+    ctrl_ptr = &ctrl;
 
     // 获取题目列表
     svr.Get("/all_problems", [&ctrl](const Request &req, Response &resp) {
