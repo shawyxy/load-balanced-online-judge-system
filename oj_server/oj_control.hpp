@@ -240,6 +240,10 @@ namespace ns_control
             std::vector<struct Problem> all;
             if (this->_model.GetAllProblems(&all))
             {
+                // 根据题号排序
+                sort(all.begin(), all.end(), [](const struct Problem &x, const struct Problem &y) {
+                    return atoi(x.id.c_str()) < atoi(y.id.c_str());
+                });
                 // 获取题目信息成功，将所有题目数据构建成网页
                 _view.AllExpandHtml(all, html);
             }
@@ -291,7 +295,7 @@ namespace ns_control
             // 2. 重新拼接用户代码和题目测试代码
             Json::Value compile_value;
             compile_value["input"] = in_value["input"].asString();
-            compile_value["code"] = code + p.tail; // 用户提交代码+题目测试代码
+            compile_value["code"] = code + "\n" + p.tail; // 用户提交代码+题目测试代码
             compile_value["cpu_limit"] = p.cpu_limit;
             compile_value["mem_limit"] = p.mem_limit;
             Json::FastWriter writer;
