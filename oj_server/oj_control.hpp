@@ -67,14 +67,14 @@ namespace ns_control
         // 获取当前的负载值
         uint64_t Load()
         {
-            uint64_t _load = 0;
+            uint64_t load_value  = 0;
             if (_mtx)
                 _mtx->lock();
-            _load = _load;
+            load_value  = _load;
             if (_mtx)
                 _mtx->unlock();
 
-            return _load;
+            return load_value ;
         }
     };
 
@@ -323,7 +323,6 @@ namespace ns_control
                     {
                         *out_json = res->body; // 将请求包含的数据作为JSON字符串返回（输出型参数）
                         machine->DecLoad();    // 请求成功，减少主机负载
-                        LOG(INFO) << "请求编译和运行服务成功，返回内容: " << res->body << "\n";
                         break; // 成功完成任务，退出循环
                     }
                     else
