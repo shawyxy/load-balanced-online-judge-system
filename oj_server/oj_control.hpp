@@ -67,14 +67,14 @@ namespace ns_control
         // 获取当前的负载值
         uint64_t Load()
         {
-            uint64_t load_value  = 0;
+            uint64_t load_value = 0;
             if (_mtx)
                 _mtx->lock();
-            load_value  = _load;
+            load_value = _load;
             if (_mtx)
                 _mtx->unlock();
 
-            return load_value ;
+            return load_value;
         }
     };
 
@@ -94,7 +94,7 @@ namespace ns_control
         LoadBalance()
         {
             assert(LoadConf(service_machine));
-            LOG(INFO) << "主机[" << service_machine << "]加载成功\n";
+            LOG(INFO) << "主机集群配置文件[" << service_machine << "]加载成功\n";
         }
         ~LoadBalance()
         {
@@ -108,7 +108,7 @@ namespace ns_control
             std::ifstream in(machine_conf);
             if (!in.is_open())
             {
-                LOG(FATAL) << " 加载：" << machine_conf << " 失败\n";
+                LOG(FATAL) << " 加载配置文件：" << machine_conf << " 失败\n";
                 return false;
             }
             // 按行读取文件
@@ -283,67 +283,72 @@ namespace ns_control
         {
             // 0. 根据题号id获取详细信息
             struct Problem p;
-            _model.GetOneProblem(id, &p);
+            _model.GetOneProblem(id, &p); // 从模型中获取指定题目的详细信息
 
             // 1. 反序列化：提取用户提交的代码和输入数据
-            Json::Reader reader;
-            Json::Value in_value;
-            reader.parse(in_json, in_value);
-            std::string code = in_value["code"].asString();
+            Json::Reader reader;                            // 创建 JSON 读取器
+            Json::Value in_value;                           // 创建 JSON 值对象以存储输入
+            reader.parse(in_json, in_value);                // 解析输入的 JSON 字符串
+            std::string code = in_value["code"].asString(); // 提取用户提交的代码
 
             // 2. 重新拼接用户代码和题目测试代码
-            Json::Value compile_value;
-            compile_value["input"] = in_value["input"].asString();
-            compile_value["code"] = code + "\n" + p.tail; // 用户提交代码+题目测试代码
-            compile_value["cpu_limit"] = p.cpu_limit;
-            compile_value["mem_limit"] = p.mem_limit;
-            Json::FastWriter writer;
-            std::string compile_string = writer.write(compile_value);
+            Json::Value compile_value;                                // 创建 JSON 值对象用于编译请求
+            compile_value["input"] = in_value["input"].asString();    // 提取用户输入
+            compile_value["code"] = code + "\n" + p.tail;             // 用户提交代码加上题目的测试代码
+            compile_value["cpu_limit"] = p.cpu_limit;                 // 设置 CPU 限制
+            compile_value["mem_limit"] = p.mem_limit;                 // 设置内存限制
+            Json::FastWriter writer;                                  // 创建 JSON 快速写入器
+            std::string compile_string = writer.write(compile_value); // 将编译请求转换为 JSON 字符串
 
             // 3. 负载均衡选择主机
-            while (true)
+            while (true) // 循环直到成功请求主机
             {
                 int machine_id = 0;         // 主机编号
-                Machine *machine = nullptr; // 主机信息
+                Machine *machine = nullptr; // 指向选定主机的指针
                 if (!_load_balance.SelectLeastLoaded(&machine_id, &machine))
                 {
-                    break; // 所有主机都不可用时，退出循环
+                    break; // 如果没有可用的主机，退出循环
                 }
 
                 // 4. 请求编译和运行服务
-                // 用选择的主机IP和端口构建Client对象
-                Client cli(machine->_ip, machine->_port);
-                // 该主机负载增加
-                machine->IncLoad();
-                LOG(INFO) << "：选择主机成功：[" << machine_id << "][" << machine->_ip << ":" << machine->_port << "]，当前负载：" << machine->Load() << "\n";
+                Client cli(machine->_ip, machine->_port); // 创建与选定主机的客户端连接
+                machine->IncLoad();                       // 增加该主机的负载
+
+                LOG(INFO) << "选择主机成功：[" << machine_id << "][" << machine->_ip << ":" << machine->_port << "]，当前负载：" << machine->Load() << "\n";
+
                 // 发起 HTTP 请求，检查主机是否正常响应
                 if (auto res = cli.Post("/compile_and_run" /*请求的服务*/, compile_string /*请求的参数*/, "application/json;charset=utf-8" /*请求的数据类型*/))
                 {
-                    if (res->status == 200) // 请求成功
+                    if (res->status == 200) // 如果请求成功
                     {
-                        *out_json = res->body; // 将请求包含的数据作为JSON字符串返回（输出型参数）
-                        machine->DecLoad();    // 请求成功，减少主机负载
-                        break; // 成功完成任务，退出循环
+                        *out_json = res->body; // 将返回的 JSON 字符串存储到输出参数中
+                        machine->DecLoad();    // 请求成功，减少该主机的负载
+
+                        LOG(INFO) << "请求「编译与运行服务」成功...\n";
+
+                        break; // 成功完成请求，退出循环
                     }
                     else
                     {
-                        // 请求失败，减少主机负载，重新选择其他主机
+                        // 请求失败，减少主机负载，准备重新选择其他主机
                         machine->DecLoad();
                     }
                 }
-                else // 如果请求失败，标记主机离线并选择其他主机（没有收到cli.Post的响应）
+                else // 如果请求失败，标记主机离线并选择其他主机
                 {
-                    LOG(ERROR) << "状态码："<< res->status << "：无法连接到主机[" << machine->_ip << ":" << machine->_port << "]，可能已离线\n";
-                    _load_balance.OfflineMachine(machine_id); // 离线这台主机
-                    _load_balance.ShowMachines();             // for test
+                    LOG(ERROR) << "无法连接到主机[" << machine->_ip << ":" << machine->_port << "]，可能已离线\n";
+
+                    _load_balance.OfflineMachine(machine_id); // 将该主机标记为离线
+                    _load_balance.ShowMachines();             // 打印当前主机状态以供调试
                 }
             }
         }
-
+        
         // 当所有主机离线则重新上线
         void RecoveryMachine()
         {
             _load_balance.OnlineMachine();
         }
+        
     };
 } // namespace ns_control
