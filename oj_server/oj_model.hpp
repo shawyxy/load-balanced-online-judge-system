@@ -1,17 +1,12 @@
 #pragma once
-// 文件版本
+// MySQL 版本
 #include "../comm/util.hpp"
 #include "../comm/log.hpp"
+#include "include/mysql.h"
 
-#include <iostream>
 #include <string>
 #include <vector>
-#include <unordered_map>
-#include <fstream>
-#include <cstdlib>
-#include <cassert>
 
-// 根据problems.list文件，加载所有的题目信息到内存中
 // model: 主要用来和数据进行交互，对外提供访问数据的接口
 
 namespace ns_model
@@ -35,99 +30,117 @@ namespace ns_model
         std::string tail;   // 题目测试用例和标准代码
     };
 
-    const std::string problems_list = "./problems/problems.list";
-    const std::string problems_path = "./problems/";
+    const std::string db = "oj";
+    const std::string oj_problems = "oj_problems";
+    const std::string host = "127.0.0.1";
+    const std::string user = "oj_admin";
+    const std::string passwd = "Man9Oo.top";
+    const int port = 3306;
 
     class Model
     {
-    private:
-        // <题号:题目所有信息>
-        unordered_map<string, Problem> problems;
-
     public:
-        Model()
-        {
-            // 加载所有的题目信息到内存中的哈希表中
-            assert(LoadProblemList(problems_list));
-        }
+        Model() {}
         ~Model() {}
 
     public:
-        bool LoadProblemList(const string &problem_list)
+        // 执行指定的 SQL 查询并将结果存储到输出参数中
+        // 参数：
+        //   sql - 要执行的 SQL 查询字符串
+        //   out - 用于存储查询结果的 Problem 对象的 vector
+        // 返回值：
+        //   如果查询成功，返回 true；否则返回 false
+        bool QueryMySql(const std::string &sql, vector<Problem> *out)
         {
-            // 加载配置文件: problems/problems.list + 题目编号文件
-            ifstream in(problem_list);
-            if (!in.is_open())
+            // 创建 MySQL 句柄（数据库连接对象）
+            MYSQL *my = mysql_init(nullptr);
+            // 尝试连接到 MySQL 数据库
+            if (nullptr == mysql_real_connect(my, host.c_str(), user.c_str(), passwd.c_str(), db.c_str(), port, nullptr, 0))
             {
-                LOG(FATAL) << "：加载题库失败，请检查是否存在题库文件\n";
+                // 如果连接失败，记录错误日志并返回 false
+                LOG(FATAL) << "连接数据库失败\n";
+                return false;
+            }
+            // 设置连接的字符集为 UTF-8，以防止中文等字符出现乱码问题
+            mysql_set_character_set(my, "utf8");
+
+            // 记录成功连接数据库的日志
+            LOG(INFO) << "连接数据库成功\n";
+
+            // 执行 SQL 查询
+            if (0 != mysql_query(my, sql.c_str()))
+            {
+                // 如果执行失败，记录警告日志并返回 false
+                LOG(WARNING) << sql << "执行失败\n";
                 return false;
             }
 
-            string line;
-            while (getline(in, line))
+            // 获取查询结果
+            MYSQL_RES *res = mysql_store_result(my);
+            // 分析查询结果的行数
+            int rows = mysql_num_rows(res);
+
+            Problem p; // 用于存储每一行数据的 Problem 对象
+
+            // 遍历每一行结果
+            for (int i = 0; i < rows; i++)
             {
-                vector<string> tokens;
-                StringUtil::SplitString(line, &tokens, " ");
-                // 切割字符串，获取题目属性字段
-                // 1 两数之和 简单 1 262144
-                if (tokens.size() != 5)
-                {
-                    LOG(WARNING) << "：加载部分题目失败，请检查文件格式\n";
-                    continue;
-                }
-                // 将属性字段设置到题目对象p中
-                Problem p;
-                p.id = tokens[0];
-                p.title = tokens[1];
-                p.star = tokens[2];
-                p.cpu_limit = atoi(tokens[3].c_str()); // 数字转字符串
-                p.mem_limit = atoi(tokens[4].c_str());
+                // 获取当前行
+                MYSQL_ROW row = mysql_fetch_row(res);
 
-                string path = problems_path;
-                path += p.id;
-                path += "/";
-                // 在题号对应的路径下读取描述和代码文件：./problems/[题号]/
-                // 读取的内容被填充到题目对象p中（输出型参数）
-                FileUtil::ReadFile(path + "desc.txt", &(p.desc), true);
-                FileUtil::ReadFile(path + "header.cpp", &(p.header), true);
-                FileUtil::ReadFile(path + "tail.cpp", &(p.tail), true);
-                // 将题号和题目对象p插入到哈希表中
-                problems.insert({p.id, p});
+                // 提取每一列的值并存储到 Problem 对象中
+                p.id = row[0];              // 题目编号
+                p.title = row[1];           // 题目标题
+                p.star = row[2];            // 题目难度
+                p.desc = row[3];            // 题目描述
+                p.header = row[4];          // 题目头文件
+                p.tail = row[5];            // 题目测试代码
+                p.cpu_limit = atoi(row[6]); // CPU 限制
+                p.mem_limit = atoi(row[7]); // 内存限制
+
+                // 添加到输出
+                out->push_back(p);
             }
-            LOG(INFO) << "：加载题库...成功\n";
-            in.close();
 
+            free(res);
+            mysql_close(my);
             return true;
         }
 
-        // 获取题目列表，out是输出型参数
+        // 获取所有题目列表，out 是输出型参数，用于存储查询结果
         bool GetAllProblems(vector<Problem> *out)
         {
-            if (problems.size() == 0)
-            {
-                LOG(ERROR) << "：用户获取题库失败\n";
-                return false;
-            }
-            // 遍历哈希表
-            for (const auto &p : problems)
-            {
-                out->push_back(p.second);
-            }
+            // 构建 SQL 查询语句，获取所有题目
+            std::string sql = "select * from ";
+            sql += oj_problems; // oj_problems 是题目表的名称
 
-            return true;
+            // 执行查询
+            return QueryMySql(sql, out);
         }
 
-        // 获取题号id对应的题目，参数p是输出型参数
+        // 获取题号 id 对应的题目，参数 p 是输出型参数，用于存储查询结果
         bool GetOneProblem(const std::string &id, Problem *p)
         {
-            const auto &it = problems.find(id);
-            if (it == problems.end())
+            bool res = false; // 用于标记查询是否成功
+            std::string sql = "select * from ";
+            sql += oj_problems;  // oj_problems 是题目表的名称
+            sql += " where id="; // 添加查询条件：根据题目 ID 查询
+            sql += id;           // 将题目 ID 添加到 SQL 查询中
+
+            vector<Problem> result; // 用于存储查询结果
+
+            // 执行查询
+            if (QueryMySql(sql, &result))
             {
-                LOG(ERROR) << "：用户获取题目失败，题目编号：" << id << "\n";
-                return false;
+                // 检查查询结果是否成功并且只返回一条记录
+                if (result.size() == 1)
+                {
+                    *p = result[0];
+                    res = true;
+                }
             }
-            (*p) = it->second;
-            return true;
+
+            return res;
         }
     };
 } // namespace ns_model
