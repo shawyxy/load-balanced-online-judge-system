@@ -241,9 +241,8 @@ namespace ns_control
             if (this->_model.GetAllProblems(&all))
             {
                 // 根据题号排序
-                sort(all.begin(), all.end(), [](const struct Problem &x, const struct Problem &y) {
-                    return atoi(x.id.c_str()) < atoi(y.id.c_str());
-                });
+                sort(all.begin(), all.end(), [](const struct Problem &x, const struct Problem &y)
+                     { return atoi(x.id.c_str()) < atoi(y.id.c_str()); });
                 // 获取题目信息成功，将所有题目数据构建成网页
                 _view.AllExpandHtml(all, html);
             }
@@ -316,7 +315,7 @@ namespace ns_control
                 Client cli(machine->_ip, machine->_port);
                 // 该主机负载增加
                 machine->IncLoad();
-                LOG(INFO) << "：选择主机成功：[" << id << "]：[" << machine->_ip << ":" << machine->_port << "]，当前负载：" << machine->Load() << "\n";
+                LOG(INFO) << "：选择主机成功：[" << machine_id << "][" << machine->_ip << ":" << machine->_port << "]，当前负载：" << machine->Load() << "\n";
                 // 发起 HTTP 请求，检查主机是否正常响应
                 if (auto res = cli.Post("/compile_and_run" /*请求的服务*/, compile_string /*请求的参数*/, "application/json;charset=utf-8" /*请求的数据类型*/))
                 {
@@ -324,15 +323,18 @@ namespace ns_control
                     {
                         *out_json = res->body; // 将请求包含的数据作为JSON字符串返回（输出型参数）
                         machine->DecLoad();    // 请求成功，减少主机负载
-                        LOG(INFO) << "请求「编译与运行服务」成功...\n";
+                        LOG(INFO) << "请求编译和运行服务成功，返回内容: " << res->body << "\n";
                         break; // 成功完成任务，退出循环
                     }
-                    // 请求失败，减少主机负载，重新选择其他主机
-                    machine->DecLoad();
+                    else
+                    {
+                        // 请求失败，减少主机负载，重新选择其他主机
+                        machine->DecLoad();
+                    }
                 }
                 else // 如果请求失败，标记主机离线并选择其他主机（没有收到cli.Post的响应）
                 {
-                    LOG(ERROR) << "：当前请求的主机：[" << machine_id << "][" << machine->_ip << ":" << machine->_port << "]可能离线\n";
+                    LOG(ERROR) << "状态码："<< res->status << "：无法连接到主机[" << machine->_ip << ":" << machine->_port << "]，可能已离线\n";
                     _load_balance.OfflineMachine(machine_id); // 离线这台主机
                     _load_balance.ShowMachines();             // for test
                 }

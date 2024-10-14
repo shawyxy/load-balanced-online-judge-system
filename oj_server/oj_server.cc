@@ -16,7 +16,7 @@ void Recovery(int signo)
 
 int main()
 {
-    signal(SIGQUIT, Recovery); // ctrl+C
+    signal(SIGINT, Recovery); // ctrl+C 重新上线
 
     // 用户请求的路由功能
     Server svr;
