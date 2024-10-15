@@ -6,6 +6,9 @@
 
 #include <string>
 #include <vector>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
 
 // model: 主要用来和数据进行交互，对外提供访问数据的接口
 
@@ -14,6 +17,74 @@ namespace ns_model
     using namespace std;
     using namespace ns_log;
     using namespace ns_util;
+
+    class MySqlConnectionPool
+    {
+    public:
+        // 初始化连接池
+        MySqlConnectionPool(const std::string &host, const std::string &user, const std::string &passwd, const std::string &db, int port, int poolSize)
+            : host_(host), user_(user), passwd_(passwd), db_(db), port_(port), poolSize_(poolSize)
+        {
+            // 创建 poolSize_ 个 MySQL 连接
+            for (int i = 0; i < poolSize_; ++i)
+            {
+                MYSQL *conn = mysql_init(nullptr);
+                if (conn == nullptr || mysql_real_connect(conn, host.c_str(), user.c_str(), passwd.c_str(), db.c_str(), port, nullptr, 0) == nullptr)
+                {
+                    LOG(FATAL) << "MySQL连接池初始化失败\n";
+                    throw std::runtime_error("MySQL连接池初始化失败");
+                }
+                mysql_set_character_set(conn, "utf8"); // 设置字符集
+                connectionPool_.push(conn);
+            }
+            LOG(INFO) << "MySQL连接池初始化成功\n";
+
+        }
+
+        // 析构函数，释放所有 MySQL 连接
+        ~MySqlConnectionPool()
+        {
+            while (!connectionPool_.empty())
+            {
+                MYSQL *conn = connectionPool_.front();
+                mysql_close(conn);
+                connectionPool_.pop();
+            }
+        }
+
+        // 获取一个可用的连接（如果没有可用连接，则等待）
+        MYSQL *getConnection()
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
+            while (connectionPool_.empty())
+            {
+                condVar_.wait(lock);
+            }
+            MYSQL *conn = connectionPool_.front();
+            connectionPool_.pop();
+            return conn;
+        }
+
+        // 归还一个连接到池子
+        void returnConnection(MYSQL *conn)
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
+            connectionPool_.push(conn);
+            condVar_.notify_one();
+        }
+
+    private:
+        std::string host_;
+        std::string user_;
+        std::string passwd_;
+        std::string db_;
+        int port_;
+        int poolSize_;
+
+        std::queue<MYSQL *> connectionPool_;
+        std::mutex mutex_;
+        std::condition_variable condVar_;
+    };
 
     // 定义题目的相关属性
     struct Problem
@@ -39,47 +110,50 @@ namespace ns_model
 
     class Model
     {
+    private:
+        MySqlConnectionPool *connectionPool_; // 连接池对象指针
     public:
-        Model() {}
-        ~Model() {}
+        // 在 Model 初始化时自动创建连接池
+        Model(int port = 3306, int poolSize = 10)
+        {
+            connectionPool_ = new MySqlConnectionPool(host, user, passwd, db, port, poolSize);
+        }
+
+        // 释放连接池
+        ~Model()
+        {
+            delete connectionPool_;
+        }
 
     public:
         // 执行指定的 SQL 查询并将结果存储到输出参数中
         // 参数：
         //   sql - 要执行的 SQL 查询字符串
-        //   out - 用于存储查询结果的 Problem 对象的 vector
-        // 返回值：
-        //   如果查询成功，返回 true；否则返回 false
+        //   out - 用于存储查询结果的 Problem 对象（输出型参数）
         bool QueryMySql(const std::string &sql, vector<Problem> *out)
         {
-            // 创建 MySQL 句柄（数据库连接对象）
-            MYSQL *my = mysql_init(nullptr);
-            // 尝试连接到 MySQL 数据库
-            if (nullptr == mysql_real_connect(my, host.c_str(), user.c_str(), passwd.c_str(), db.c_str(), port, nullptr, 0))
-            {
-                // 如果连接失败，记录错误日志并返回 false
-                LOG(FATAL) << "连接数据库失败\n";
-                return false;
-            }
-            // 设置连接的字符集为 UTF-8，以防止中文等字符出现乱码问题
-            mysql_set_character_set(my, "utf8");
-
-            // 记录成功连接数据库的日志
-            LOG(INFO) << "连接数据库成功\n";
+            // 从连接池中获取一个连接
+            MYSQL *my = connectionPool_->getConnection();
 
             // 执行 SQL 查询
             if (0 != mysql_query(my, sql.c_str()))
             {
-                // 如果执行失败，记录警告日志并返回 false
                 LOG(WARNING) << sql << "执行失败\n";
+                connectionPool_->returnConnection(my);
                 return false;
             }
 
             // 获取查询结果
             MYSQL_RES *res = mysql_store_result(my);
+            if (res == nullptr)
+            {
+                LOG(WARNING) << "查询结果为空\n";
+                connectionPool_->returnConnection(my);
+                return false;
+            }
+
             // 分析查询结果的行数
             int rows = mysql_num_rows(res);
-
             Problem p; // 用于存储每一行数据的 Problem 对象
 
             // 遍历每一行结果
@@ -102,8 +176,8 @@ namespace ns_model
                 out->push_back(p);
             }
 
-            free(res);
-            mysql_close(my);
+            mysql_free_result(res);
+            connectionPool_->returnConnection(my);
             return true;
         }
 
@@ -128,7 +202,6 @@ namespace ns_model
             sql += id;           // 将题目 ID 添加到 SQL 查询中
 
             vector<Problem> result; // 用于存储查询结果
-
             // 执行查询
             if (QueryMySql(sql, &result))
             {
