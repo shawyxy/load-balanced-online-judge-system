@@ -24,6 +24,9 @@ output:
 clean:
 	@cd compile_server;\
 	make clean;\
+	cd temp;\
+	rm -rf *;\
+	cd -;
 	cd -;\
 	cd oj_server;\
 	make clean;\
