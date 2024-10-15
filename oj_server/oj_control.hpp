@@ -316,10 +316,11 @@ namespace ns_control
 
                 LOG(INFO) << "选择主机成功：[" << machine_id << "][" << machine->_ip << ":" << machine->_port << "]，当前负载：" << machine->Load() << "\n";
 
+                int resp_status = 0;
                 // 发起 HTTP 请求，检查主机是否正常响应
                 if (auto res = cli.Post("/compile_and_run" /*请求的服务*/, compile_string /*请求的参数*/, "application/json;charset=utf-8" /*请求的数据类型*/))
                 {
-                    if (res->status == 200) // 如果请求成功
+                    if (resp_status = res->status == 200) // 如果请求成功
                     {
                         *out_json = res->body; // 将返回的 JSON 字符串存储到输出参数中
                         machine->DecLoad();    // 请求成功，减少该主机的负载
@@ -336,19 +337,17 @@ namespace ns_control
                 }
                 else // 如果请求失败，标记主机离线并选择其他主机
                 {
-                    LOG(ERROR) << "无法连接到主机[" << machine->_ip << ":" << machine->_port << "]，可能已离线\n";
+                    LOG(ERROR) << "状态码：" << resp_status << "无法连接到主机[" << machine->_ip << ":" << machine->_port << "]，可能已离线\n";
 
                     _load_balance.OfflineMachine(machine_id); // 将该主机标记为离线
                     _load_balance.ShowMachines();             // 打印当前主机状态以供调试
                 }
             }
         }
-        
         // 当所有主机离线则重新上线
         void RecoveryMachine()
         {
             _load_balance.OnlineMachine();
         }
-        
     };
 } // namespace ns_control
